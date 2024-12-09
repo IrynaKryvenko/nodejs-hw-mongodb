@@ -20,7 +20,7 @@ export const getContactsController = async (req, res) => {
         });
     };
 
-export const getContactByIdConroller = async (req, res, next) => {
+export const getContactByIdConroller = async (req, res) => {
     const { contactId } = req.params;
     const contact = await getContactById(contactId);
 
