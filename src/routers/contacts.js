@@ -17,7 +17,7 @@ router.use(authenticate);
 
 router.get('/', ctrlWrapper(getContactsController));
 
-router.post('/register', validateBody(createContactSchema), ctrlWrapper(createContactController));
+router.post('/', validateBody(createContactSchema), ctrlWrapper(createContactController));
 
 router.delete('/:contactId', validateBody(updateContactSchema), ctrlWrapper(deleteContactController));
 
