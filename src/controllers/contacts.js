@@ -22,11 +22,13 @@ export const getContactsController = async (req, res) => {
         });
     };
 
+
 export const getContactByIdConroller = async (req, res, next) => {
   const { contactId } = req.params;
   const { _id: userId } = req.user;
 
     const contact = await getContactById(contactId, userId);
+
 
     if (!contact) {
        throw createHttpError(404, 'Contact not found');
