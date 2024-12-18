@@ -1,140 +1,136 @@
-import { getAllContacts, getContactById, createContact, deleteContact, updateContact } from "../services/contacts.js";
+import {
+    createContact,
+    deleteContact,
+    getAllContacts,
+    getContactById,
+    updateContact,
+} from '../services/contacts.js';
+
 import createHttpError from 'http-errors';
-import { parsePaginationParams } from "../utils/parsePaginationParams.js";
-import { parseSortParams } from "../utils/parseSortParams.js";
-import mongoose from 'mongoose';
+import { parsePaginationParams } from '../utils/parsePaginationParams.js';
+import { parseSortParams } from '../utils/parseSortParams.js';
 
 export const getContactsController = async (req, res) => {
-    if (!req.user) {
-    throw createHttpError(401, 'User not authenticated');
-  }
-  const { page, perPage } = parsePaginationParams(req.query);
-  const { sortBy, sortOrder } = parseSortParams(req.query);
-  const { _id: userId } = req.user;
-  const contacts = await getAllContacts({
-    page, 
-    perPage,
-    sortBy,
-    sortOrder,
-    userId,
-     });
+    if (!req.user || !req.user._id) {
+        throw createHttpError(401, 'User not authenticated');
+    }
+    
+    const { page, perPage } = parsePaginationParams(req.query);
+    const { sortBy, sortOrder } = parseSortParams(req.query);
+
+    try {
+        const result = await getAllContacts({ page, perPage, sortBy, sortOrder, userId: req.user._id });
         res.status(200).json({
             status: 200,
             message: 'Successfully found contacts',
-            data: contacts,
+            data: result,
         });
-    };
+    } catch (error) {
+        console.error('Error in getContactsController:', error); // Логирование ошибки
+        throw createHttpError(500, 'Internal Server Error');
+    }
+};
 
+export const getContactByIdController = async (req, res) => {
+    const { contactId } = req.params;
 
-export const getContactByIdConroller = async (req, res) => {
-  const { contactId } = req.params;
-   if (!mongoose.Types.ObjectId.isValid(contactId)) {
-    throw createHttpError(400, 'Invalid contact ID');
-  }
-  if (!req.user) {
-    throw createHttpError(401, 'User not authenticated');
-  }
-
-  const { _id: userId } = req.user;
-
-    const contact = await getContactById(contactId, userId);
-
-
-    if (!contact) {
-       throw createHttpError(404, 'Contact not found');
+    if (!req.user || !req.user._id) {
+        throw createHttpError(401, 'User not authenticated');
     }
 
-    res.status(200).json({
-        status: 200,
-        message: `Successfully found contact with id ${contactId}!`,
-        data: contact,
-    });
+    try {
+        const contact = await getContactById(contactId, req.user._id);
+
+        if (!contact) {
+            throw createHttpError(404, 'Contact not found');
+        }
+
+        res.status(200).json({
+            status: 200,
+            message: `Successfully found contact with id ${contactId}!`,
+            data: contact,
+        });
+    } catch (error) {
+        console.error('Error in getContactByIdController:', error); // Логирование ошибки
+        throw createHttpError(500, 'Internal Server Error');
+    }
 };
 
 export const createContactController = async (req, res) => {
-    if (!req.user) {
-    throw createHttpError(401, 'User not authenticated');
-  }
-   const payload = {
-    ...req.body,
-    userId: req.user._id,
-  };
+    if (!req.user || !req.user._id) {
+        throw createHttpError(401, 'User not authenticated');
+    }
 
-  const contact = await createContact(payload);
+    const { name, phoneNumber, email, isFavourite, contactType } = req.body;
 
-  res.status(201).json({
-    status: 201,
-    message: `Successfully created a contact!`,
-    data: contact,
-  });
+    const newContact = {
+        name,
+        phoneNumber,
+        email,
+        isFavourite,
+        contactType,
+        userId: req.user._id,
+    };
+
+    try {
+        const contact = await createContact(newContact);
+
+        res.status(201).json({
+            status: 201,
+            message: 'Successfully created a contact!',
+            data: contact,
+        });
+    } catch (error) {
+        console.error('Error in createContactController:', error); // Логирование ошибки
+        throw createHttpError(500, 'Internal Server Error');
+    }
 };
 
-export const deleteContactController = async (req, res, next) => {
-  const { contactId } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(contactId)) {
-    throw createHttpError(400, 'Invalid contact ID');
-  }
+export const deleteContactController = async (req, res) => {
+    const { contactId } = req.params;
 
-  if (!req.user) {
-    throw createHttpError(401, 'User not authenticated');
-  }
-  const { _id: userId } = req.user;
-  const contact = await deleteContact(contactId, userId);
+    if (!req.user || !req.user._id) {
+        throw createHttpError(401, 'User not authenticated');
+    }
 
-  if (!contact) {
-    throw(createHttpError(404, 'Contact not found'));
-    
-  }
+    try {
+        const contact = await deleteContact(contactId, req.user._id);
 
-  res.status(204).send();
+        if (!contact) {
+            throw createHttpError(404, 'Contact not found');
+        }
+
+        res.status(204).send();
+    } catch (error) {
+        console.error('Error in deleteContactController:', error); // Логирование ошибки
+        throw createHttpError(500, 'Internal Server Error');
+    }
 };
 
-export const upsertContactController = async (req, res, next) => {
-  const { contactId } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(contactId)) {
-    throw createHttpError(400, 'Invalid contact ID');
-  }
+export const patchContactController = async (req, res) => {
+    const { contactId } = req.params;
+    const { name, phoneNumber, email, isFavourite, contactType } = req.body;
 
-  if (!req.user) {
-    throw createHttpError(401, 'User not authenticated');
-  }
-  const { _id: userId } = req.user;
-const result = await updateContact (contactId, userId, req.body, {
-    upsert: true,
-  });
+    if (!req.user || !req.user._id) {
+        throw createHttpError(401, 'User not authenticated');
+    }
 
-  if (!result || !result.contact) {
-    throw(createHttpError(404, 'Contact not found'));
-  }
+    const updatedContact = { name, phoneNumber, email, isFavourite, contactType };
 
-  const status = result.isNew ? 201 : 200;
+    try {
+        const contact = await updateContact(contactId, updatedContact, req.user._id);
 
-  res.status(status).json({
-    status,
-    message: `Successfully upserted a contact!`,
-    data: result.contact,
-  });
-};
+        if (!contact) {
+            throw createHttpError(404, 'Contact not found');
+        }
 
-export const patchContactController = async (req, res, next) => {
-  const { contactId } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(contactId)) {
-    throw createHttpError(400, 'Invalid contact ID');
-  }
-
-  if (!req.user) {
-    throw createHttpError(401, 'User not authenticated');
-  }
-  const { _id: userId } = req.user;
-  const result = await updateContact(contactId, userId, req.body);
-
-  if (!result || !result.contact) {
-    throw(createHttpError(404, 'Contact not found'));
-  }
-
-  res.json({
-    status: 200,
-    message: `Successfully patched a contact!`,
-    data: result.contact,
-  });
+        res.status(200).json({
+            status: 200,
+            message: 'Successfully patched a contact!',
+            data: contact,
+        });
+    } catch (error) {
+        console.error('Error in patchContactController:', error); // Логирование ошибки
+        throw createHttpError(500, 'Internal Server Error');
+    }
 };
