@@ -34,15 +34,18 @@ export const getContactsController = async (req, res) => {
 export const getContactByIdController = async (req, res) => {
     const { contactId } = req.params;
 
+    if (!contactId) {
+        throw createHttpError(400, 'Contact ID is required');
+    }
+
     if (!req.user || !req.user._id) {
         throw createHttpError(401, 'User not authenticated');
     }
 
     try {
         const contact = await getContactById(contactId, req.user._id);
-
         if (!contact) {
-            throw createHttpError(404, 'Contact not found');
+            throw createHttpError(404, `Contact with id ${contactId} not found`);
         }
 
         res.status(200).json({
@@ -51,7 +54,7 @@ export const getContactByIdController = async (req, res) => {
             data: contact,
         });
     } catch (error) {
-        console.error('Error in getContactByIdController:', error); // Логирование ошибки
+        console.error('Error in getContactByIdController:', error);
         throw createHttpError(500, 'Internal Server Error');
     }
 };

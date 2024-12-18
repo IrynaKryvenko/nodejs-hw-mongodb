@@ -5,8 +5,8 @@ import { UsersCollection } from '../db/models/user.js';
 export const authenticate = async (req, res, next) => {
     const { authorization } = req.headers;
 
-    if (!authorization) {
-        return next(createHttpError(401, 'Please provide Authorization header'));
+    if (!authorization || !authorization.includes(' ')) {
+        return next(createHttpError(401, 'Invalid Authorization header format'));
     }
 
     const [bearer, token] = authorization.split(' ');
@@ -19,28 +19,28 @@ export const authenticate = async (req, res, next) => {
         const session = await SessionsCollection.findOne({ accessToken: token });
 
         if (!session) {
-            return next(createHttpError(401, 'Session not found'));
+            return next(createHttpError(401, 'Session not found. Please log in again.'));
         }
 
-        const isAccessTokenExpired = new Date() > new Date(session.accessTokenValidUntil);
+        const isAccessTokenExpired = new Date(session.accessTokenValidUntil).getTime() < Date.now();
         if (isAccessTokenExpired) {
-            return next(createHttpError(401, 'Access token expired'));
+            return next(createHttpError(401, 'Access token expired. Please refresh your token.'));
         }
 
         const user = await UsersCollection.findById(session.userId);
         if (!user) {
-            return next(createHttpError(401, 'User not found'));
+            return next(createHttpError(401, 'User associated with this session not found.'));
         }
 
-        req.user = user;  // Здесь устанавливаем req.user
+        req.user = user; // Устанавливаем пользователя в запрос
 
-        // Проверяем, что req.user существует и что у него есть _id
-        if (!req.user || !req.user._id) {
+        if (!req.user?.id) {
             return next(createHttpError(401, 'User not authenticated'));
         }
 
-        next();  // Переход к следующему middleware или контроллеру
-    } catch  {
+        next(); // Переход к следующему middleware или контроллеру
+    } catch (error) {
+        console.error(error); // Логируем ошибку для диагностики
         return next(createHttpError(500, 'Internal Server Error'));
     }
 };
