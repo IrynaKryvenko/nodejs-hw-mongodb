@@ -1,47 +1,46 @@
-
 import createHttpError from 'http-errors';
-
 import { SessionsCollection } from '../db/models/session.js';
 import { UsersCollection } from '../db/models/user.js';
 
 export const authenticate = async (req, res, next) => {
-  const authHeader = req.get('Authorization');
+    const { authorization } = req.headers;
 
-  if (!authHeader) {
-    next(createHttpError(401, 'Please provide Authorization header'));
-    return;
-  }
+    if (!authorization) {
+        return next(createHttpError(401, 'Please provide Authorization header'));
+    }
 
-  const bearer = authHeader.split(' ')[0];
-  const token = authHeader.split(' ')[1];
+    const [bearer, token] = authorization.split(' ');
 
-  if (bearer !== 'Bearer' || !token) {
-    next(createHttpError(401, 'Auth header should be of type Bearer'));
-    return;
-  }
+    if (bearer !== 'Bearer' || !token) {
+        return next(createHttpError(401, 'Auth header should be of type Bearer'));
+    }
 
-  const session = await SessionsCollection.findOne({ accessToken: token });
+    try {
+        const session = await SessionsCollection.findOne({ accessToken: token });
 
-  if (!session) {
-    next(createHttpError(401, 'Session not found'));
-    return;
-  }
+        if (!session) {
+            return next(createHttpError(401, 'Session not found'));
+        }
 
-  const isAccessTokenExpired =
-    new Date() > new Date(session.accessTokenValidUntil);
+        const isAccessTokenExpired = new Date() > new Date(session.accessTokenValidUntil);
+        if (isAccessTokenExpired) {
+            return next(createHttpError(401, 'Access token expired'));
+        }
 
-  if (isAccessTokenExpired) {
-    next(createHttpError(401, 'Access token expired'));
-  }
+        const user = await UsersCollection.findById(session.userId);
+        if (!user) {
+            return next(createHttpError(401, 'User not found'));
+        }
 
-  const user = await UsersCollection.findById(session.userId);
+        req.user = user;  // Здесь устанавливаем req.user
 
-  if (!user) {
-    next(createHttpError(401));
-    return;
-  }
+        // Проверяем, что req.user существует и что у него есть _id
+        if (!req.user || !req.user._id) {
+            return next(createHttpError(401, 'User not authenticated'));
+        }
 
-  req.user = user;
-
-  next();
+        next();  // Переход к следующему middleware или контроллеру
+    } catch  {
+        return next(createHttpError(500, 'Internal Server Error'));
+    }
 };
