@@ -1,3 +1,4 @@
+
 import { model, Schema } from "mongoose";
 const contactsSchema = new Schema(
     {
@@ -36,6 +37,5 @@ const contactsSchema = new Schema(
         versionKey: false,
     },
     
-);
 
 export const ContactsCollection = model('contacts', contactsSchema);

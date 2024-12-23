@@ -1,8 +1,8 @@
-
 import { model, Schema } from 'mongoose';
 
-const sessionsSchema = new Schema(
+const sessionSchema = new Schema(
   {
+
         userId: {
           type: Schema.Types.ObjectId,
           ref: 'users',
@@ -27,7 +27,7 @@ const sessionsSchema = new Schema(
     {
         timestamps: true,
         versionKey: false
-    },
+
 );
 
-export const SessionsCollection = model('sessions', sessionsSchema);
+export const SessionCollection = model('sessions', sessionSchema);
