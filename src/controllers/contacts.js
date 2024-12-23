@@ -7,6 +7,9 @@ import {
 } from '../services/contacts.js';
 import createHttpError from 'http-errors';
 
+import { saveFileToCloudinary } from '../utils/saveFileToCloudinary.js';
+
+
 import { parsePaginationParams } from '../utils/parsePaginationParams.js';
 
 import { parseSortParams } from '../utils/parseSortParams.js';
@@ -51,9 +54,20 @@ export const getContactByIdController = async (req, res) => {
 };
 
 export const createContactController = async (req, res) => {
+
+    const photo = req.file;
+
+  let photoUrl;
+
+  if (photo) {
+    photoUrl = await saveFileToCloudinary(photo);
+  }
+
   const payload = {
+
     ...req.body,
-    userId: req.user._id,
+     userId: req.user._id,
+    photo: photoUrl,
   };
 
   const contact = await createContact(payload);
@@ -85,7 +99,21 @@ export const patchContactController = async (req, res) => {
 export const deleteContactController = async (req, res) => {
   const { contactId } = req.params;
   const { _id: userId } = req.user;
+
+    const photo = req.file;
+
+  let photoUrl;
+
+  if (photo) {
+    photoUrl = await saveFileToCloudinary(photo);
+  }
+  const result = await updateContact(contactId, userId, {
+    ...req.body,
+    photo: photoUrl,
+  });
+
   const contact = await deleteContact(contactId, userId);
+
 
   if (!contact) {
     throw createHttpError(404, 'Contact not found');
