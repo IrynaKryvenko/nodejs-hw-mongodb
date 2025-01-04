@@ -21,7 +21,7 @@ requestBody:
           name:
             description: "Contact's name"
             type: string
-            example: 'Oleh Kovalenko'
+            example: 'John Doe'
           phoneNumber:
             description: "Contact's number"
             type: string
@@ -29,7 +29,7 @@ requestBody:
           email:
             description: "Contact's age"
             type: string
-            example: oleh9@example.com
+            example: 'johndoe@gmail.com'
           isFavorite:
             description: 'Is this your favorite contact?'
             type: boolean
@@ -41,7 +41,7 @@ requestBody:
           photo:
             description: "Link to contact's photo"
             type: string
-            example: https://res.cloudinary.com/dciuk2mtq/image/upload/v1724599213/pl7yzhsi7ibksqz3zaiu.png
+            example: https://res.cloudinary.com/uqwgdu/image/upload/image.png
 responses:
   '201':
     description: Update a contact
